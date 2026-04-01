@@ -84,12 +84,15 @@ app.post('/webhook', async (req, res) => {
 });
 
 app.post('/api/webhook', express.text({ type: '*/*' }), async (req, res) => {
+  console.log('[API Webhook] Content-Type:', req.headers['content-type']);
+  console.log('[API Webhook] Body bruto:', req.body);
+
   let body;
   try {
     body = JSON.parse(req.body);
   } catch (err) {
     console.error('[API Webhook] Erro ao fazer parse do body:', err);
-    return res.status(400).send('Bad Request');
+    return res.status(200).send('OK');
   }
 
   const type = body?.Type;
