@@ -25,6 +25,8 @@ app.get('/status', (req, res) => {
 });
 
 app.post('/webhook', async (req, res) => {
+  console.log('[Webhook] recebido:', req);
+
   const body = req.body;
   const type = body?.Type;
 

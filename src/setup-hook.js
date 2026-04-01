@@ -2,7 +2,6 @@ import 'dotenv/config';
 import { StorageAndHookAPIClient } from '@adaptive-recognition/carmen-cloud-client';
 
 const apiKey = process.env.CARMEN_API_KEY;
-const region = process.env.CARMEN_REGION ?? 'sam';
 const hookUrl = process.env.HOOK_URL;
 
 if (!apiKey || !hookUrl) {
