@@ -28,7 +28,6 @@ app.post('/webhook', async (req, res) => {
   const body = req.body;
   const type = body?.Type;
 
-  // 1. Confirmação de subscription do SNS
   if (type === 'SubscriptionConfirmation') {
     const subscribeUrl = body.SubscribeURL;
     console.log('[Webhook] SubscriptionConfirmation recebido, confirmando:', subscribeUrl);
@@ -42,7 +41,6 @@ app.post('/webhook', async (req, res) => {
     return res.sendStatus(200);
   }
 
-  // 2. Notificação normal do SNS
   if (type === 'Notification') {
     let payload;
     try {
@@ -81,12 +79,48 @@ app.post('/webhook', async (req, res) => {
     return res.sendStatus(200);
   }
 
-  // 3. Qualquer outro tipo
   console.log(`[Webhook] Tipo desconhecido recebido: ${type}`);
   res.sendStatus(200);
 });
 
-// Local
+app.post('/api/webhook', express.text({ type: '*/*' }), async (req, res) => {
+  let body;
+  try {
+    body = JSON.parse(req.body);
+  } catch (err) {
+    console.error('[API Webhook] Erro ao fazer parse do body:', err);
+    return res.status(400).send('Bad Request');
+  }
+
+  const type = body?.Type;
+
+  if (type === 'SubscriptionConfirmation') {
+    console.log('[API Webhook] SubscriptionConfirmation recebido, confirmando:', body.SubscribeURL);
+    try {
+      await fetch(body.SubscribeURL);
+      console.log('[API Webhook] Subscription confirmada com sucesso.');
+    } catch (err) {
+      console.error('[API Webhook] Erro ao confirmar subscription:', err);
+    }
+    return res.status(200).send('Confirmed');
+  }
+
+  if (type === 'Notification') {
+    let payload;
+    try {
+      payload = JSON.parse(body.Message);
+    } catch (err) {
+      console.error('[API Webhook] Erro ao fazer parse do Message:', err);
+      return res.status(200).send('OK');
+    }
+    console.log('[API Webhook] Payload recebido:', JSON.stringify(payload, null, 2));
+    return res.status(200).send('OK');
+  }
+
+  console.log(`[API Webhook] Tipo desconhecido recebido: ${type}`);
+  res.status(200).send('OK');
+});
+
 if (process.env.VERCEL !== '1') {
   const PORT = process.env.PORT ?? 3000;
   app.listen(PORT, () => {
