@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Carmen Telegram — Status</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0f1117;
+      color: #e2e8f0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .card {
+      background: #1a1d27;
+      border: 1px solid #2d3148;
+      border-radius: 16px;
+      padding: 40px;
+      width: 100%;
+      max-width: 480px;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 32px;
+    }
+
+    .header h1 {
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: #f8fafc;
+    }
+
+    .header span {
+      font-size: 0.85rem;
+      color: #64748b;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 32px;
+    }
+
+    .status-badge.ok {
+      background: #14532d33;
+      color: #4ade80;
+      border: 1px solid #166534;
+    }
+
+    .status-badge.error {
+      background: #7f1d1d33;
+      color: #f87171;
+      border: 1px solid #991b1b;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: currentColor;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    .stats {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .stat {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 16px;
+      background: #0f1117;
+      border-radius: 10px;
+      border: 1px solid #2d3148;
+    }
+
+    .stat-label {
+      font-size: 0.82rem;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .stat-value {
+      font-size: 0.95rem;
+      font-weight: 500;
+      color: #f1f5f9;
+    }
+
+    .footer {
+      margin-top: 24px;
+      text-align: center;
+      font-size: 0.75rem;
+      color: #334155;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="header">
+      <div>
+        <h1>Carmen Telegram</h1>
+        <span>Webhook de detecção de placas</span>
+      </div>
+    </div>
+
+    <div id="badge" class="status-badge">
+      <span class="dot"></span>
+      <span id="badge-text">Carregando...</span>
+    </div>
+
+    <div class="stats">
+      <div class="stat">
+        <span class="stat-label">Servidor iniciado</span>
+        <span class="stat-value" id="startedAt">—</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Placas recebidas</span>
+        <span class="stat-value" id="totalReceived">—</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Última placa</span>
+        <span class="stat-value" id="lastPlate">—</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Último recebimento</span>
+        <span class="stat-value" id="lastReceivedAt">—</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Erros</span>
+        <span class="stat-value" id="errors">—</span>
+      </div>
+    </div>
+
+    <div class="footer">Atualiza a cada 5 segundos</div>
+  </div>
+
+  <script>
+    function fmt(iso) {
+      if (!iso) return 'Nenhum';
+      return new Date(iso).toLocaleString('pt-BR');
+    }
+
+    async function fetchStatus() {
+      try {
+        const res = await fetch('/status');
+        const data = await res.json();
+
+        const badge = document.getElementById('badge');
+        badge.className = 'status-badge ' + (data.status === 'ok' ? 'ok' : 'error');
+        document.getElementById('badge-text').textContent =
+          data.status === 'ok' ? 'Operacional' : 'Com falhas';
+
+        document.getElementById('startedAt').textContent = fmt(data.startedAt);
+        document.getElementById('totalReceived').textContent = data.totalReceived;
+        document.getElementById('lastPlate').textContent = data.lastPlate ?? 'Nenhuma';
+        document.getElementById('lastReceivedAt').textContent = fmt(data.lastReceivedAt);
+        document.getElementById('errors').textContent = data.errors;
+      } catch {
+        const badge = document.getElementById('badge');
+        badge.className = 'status-badge error';
+        document.getElementById('badge-text').textContent = 'Servidor inacessível';
+      }
+    }
+
+    fetchStatus();
+    setInterval(fetchStatus, 5000);
+  </script>
+</body>
+</html>

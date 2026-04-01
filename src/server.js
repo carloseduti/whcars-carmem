@@ -1,9 +1,29 @@
 import 'dotenv/config';
 import express from 'express';
+import { readFileSync } from 'fs';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
 // import { sendToTelegram } from './telegram.js';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const app = express();
 app.use(express.json());
+
+const stats = { totalReceived: 0, lastPlate: null, lastReceivedAt: null, errors: 0 };
+const startedAt = new Date().toISOString();
+
+app.get('/', (req, res) => {
+  res.sendFile(join(__dirname, '../public/status.html'));
+});
+
+app.get('/status', (req, res) => {
+  res.json({
+    status: 'ok',
+    startedAt,
+    ...stats,
+  });
+});
 
 app.post('/webhook', async (req, res) => {
   console.log('[Webhook] Payload recebido:', JSON.stringify(req.body, null, 2));
@@ -25,6 +45,9 @@ app.post('/webhook', async (req, res) => {
     }
 
     console.log(`[Webhook] Placa: ${plate} | País: ${country ?? 'N/A'}`);
+    stats.totalReceived++;
+    stats.lastPlate = plate;
+    stats.lastReceivedAt = new Date().toISOString();
     // await sendToTelegram(plate, country ?? 'N/A');
   }
 
