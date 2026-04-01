@@ -84,43 +84,41 @@ app.post('/webhook', async (req, res) => {
 });
 
 app.post('/api/webhook', express.text({ type: '*/*' }), async (req, res) => {
-  console.log('[API Webhook] Content-Type:', req.headers['content-type']);
-  console.log('[API Webhook] Body bruto:', req.body);
-
-  let body;
   try {
-    body = JSON.parse(req.body);
+    const envelope = JSON.parse(req.body);
+    const type = envelope?.Type;
+
+    if (type === 'SubscriptionConfirmation') {
+      console.log('[API Webhook] SubscriptionConfirmation recebido, confirmando:', envelope.SubscribeURL);
+      try {
+        await fetch(envelope.SubscribeURL);
+        console.log('[API Webhook] Subscription confirmada com sucesso.');
+      } catch (err) {
+        console.error('[API Webhook] Erro ao confirmar subscription:', err);
+      }
+      return res.status(200).send('Confirmed');
+    }
+
+    if (type === 'Notification') {
+      const payload = JSON.parse(envelope.Message);
+      const vehicles = payload?.event?.data?.vehicles ?? [];
+
+      for (const vehicle of vehicles) {
+        const plate = vehicle?.plate?.unicodeText;
+        const country = vehicle?.plate?.country;
+
+        if (!plate) continue;
+
+        console.log(`[API Webhook] Placa: ${plate} | País: ${country ?? 'N/A'}`);
+        stats.totalReceived++;
+        stats.lastPlate = plate;
+        stats.lastReceivedAt = new Date().toISOString();
+      }
+    }
   } catch (err) {
-    console.error('[API Webhook] Erro ao fazer parse do body:', err);
-    return res.status(200).send('OK');
+    console.error('[API Webhook] Erro ao processar requisição:', err);
   }
 
-  const type = body?.Type;
-
-  if (type === 'SubscriptionConfirmation') {
-    console.log('[API Webhook] SubscriptionConfirmation recebido, confirmando:', body.SubscribeURL);
-    try {
-      await fetch(body.SubscribeURL);
-      console.log('[API Webhook] Subscription confirmada com sucesso.');
-    } catch (err) {
-      console.error('[API Webhook] Erro ao confirmar subscription:', err);
-    }
-    return res.status(200).send('Confirmed');
-  }
-
-  if (type === 'Notification') {
-    let payload;
-    try {
-      payload = JSON.parse(body.Message);
-    } catch (err) {
-      console.error('[API Webhook] Erro ao fazer parse do Message:', err);
-      return res.status(200).send('OK');
-    }
-    console.log('[API Webhook] Payload recebido:', JSON.stringify(payload, null, 2));
-    return res.status(200).send('OK');
-  }
-
-  console.log(`[API Webhook] Tipo desconhecido recebido: ${type}`);
   res.status(200).send('OK');
 });
 
