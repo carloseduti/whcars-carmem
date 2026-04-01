@@ -24,68 +24,8 @@ app.get('/status', (req, res) => {
   });
 });
 
-app.post('/webhook', async (req, res) => {
-  console.log('[Webhook] recebido:', req);
-
-  const body = req.body;
-  const type = body?.Type;
-
-  if (type === 'SubscriptionConfirmation') {
-    const subscribeUrl = body.SubscribeURL;
-    console.log('[Webhook] SubscriptionConfirmation recebido, confirmando:', subscribeUrl);
-    try {
-      await fetch(subscribeUrl);
-      console.log('[Webhook] Subscription confirmada com sucesso.');
-    } catch (err) {
-      console.error('[Webhook] Erro ao confirmar subscription:', err);
-      stats.errors++;
-    }
-    return res.sendStatus(200);
-  }
-
-  if (type === 'Notification') {
-    let payload;
-    try {
-      payload = JSON.parse(body.Message);
-    } catch (err) {
-      console.error('[Webhook] Erro ao fazer parse do Message:', err);
-      stats.errors++;
-      return res.sendStatus(200);
-    }
-
-    console.log('[Webhook] Notificação recebida:', JSON.stringify(payload, null, 2));
-
-    const vehicles = payload?.data?.vehicles ?? [];
-
-    if (vehicles.length === 0) {
-      console.log('[Webhook] Nenhum veículo encontrado no payload.');
-      return res.sendStatus(200);
-    }
-
-    for (const vehicle of vehicles) {
-      const plate = vehicle?.plate?.unicodeText;
-      const country = vehicle?.plate?.country;
-
-      if (!plate) {
-        console.log('[Webhook] Veículo sem placa identificada, ignorando.');
-        continue;
-      }
-
-      console.log(`[Webhook] Placa: ${plate} | País: ${country ?? 'N/A'}`);
-      stats.totalReceived++;
-      stats.lastPlate = plate;
-      stats.lastReceivedAt = new Date().toISOString();
-      // await sendToTelegram(plate, country ?? 'N/A');
-    }
-
-    return res.sendStatus(200);
-  }
-
-  console.log(`[Webhook] Tipo desconhecido recebido: ${type}`);
-  res.sendStatus(200);
-});
-
 app.post('/api/webhook', express.text({ type: '*/*' }), async (req, res) => {
+  console.log('[API Webhook] SubscriptionConfirmation recebido, confirmando:', req.body);
   try {
     const envelope = JSON.parse(req.body);
     const type = envelope?.Type;
